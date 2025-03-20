@@ -1,0 +1,50 @@
+# 二进制文件
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# 测试文件
+*.test
+
+# 覆盖率工具生成的文件
+*.out
+*.prof
+*.cov
+
+# 依赖目录
+/vendor/
+
+# IDE文件
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# 日志文件
+*.log
+
+# 环境变量文件
+.env
+.env.local
+
+# 配置文件（按需取消注释）
+# /conf/*.yml
+# /conf/*.yaml
+# /conf/*.json
+
+# 编译输出目录
+/bin/*
+!/bin/.gitkeep
+/dist/
+
+# 转储文件
+dump.rdb
+
+# Go工作区文件
+go.work
+
+# 本地临时文件
+/tmp/ 
