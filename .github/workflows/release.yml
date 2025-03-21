@@ -1,0 +1,75 @@
+name: 发布Go包
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '发布版本 (例如: v1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  release:
+    name: 创建发布
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: 设置Go环境
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.18'
+          cache: true
+
+      - name: 验证Go模块
+        run: go mod verify
+
+      - name: 验证版本格式
+        run: |
+          if ! [[ ${{ github.event.inputs.version }} =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "错误: 版本格式必须为 vX.Y.Z"
+            exit 1
+          fi
+
+      - name: 运行测试
+        run: go test -v ./...
+
+      - name: 创建Git标签
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git tag -a ${{ github.event.inputs.version }} -m "Release ${{ github.event.inputs.version }}"
+          git push origin ${{ github.event.inputs.version }}
+
+      - name: 创建发布包
+        run: |
+          # 创建临时目录
+          mkdir -p /tmp/go-tushare-${{ github.event.inputs.version }}
+          
+          # 复制必要文件到临时目录，排除不需要的文件
+          rsync -av --exclude='.git/' --exclude='bin/' --exclude='.github/' \
+            --exclude='.gitignore' --exclude='.DS_Store' --exclude='*.test' \
+            --exclude='*.out' --exclude='*.log' --exclude='.idea/' --exclude='.vscode/' \
+            --exclude='tmp/' --exclude='dist/' --exclude='cmd/' --exclude='Makefile' \
+            . /tmp/go-tushare-${{ github.event.inputs.version }}/
+          
+          # 创建发布压缩包
+          cd /tmp
+          tar -czvf go-tushare-${{ github.event.inputs.version }}.tar.gz go-tushare-${{ github.event.inputs.version }}
+          zip -r go-tushare-${{ github.event.inputs.version }}.zip go-tushare-${{ github.event.inputs.version }}
+
+      - name: 创建GitHub发布
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.inputs.version }}
+          name: Release ${{ github.event.inputs.version }}
+          draft: false
+          prerelease: false
+          files: |
+            /tmp/go-tushare-${{ github.event.inputs.version }}.tar.gz
+            /tmp/go-tushare-${{ github.event.inputs.version }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
